@@ -1,44 +1,23 @@
-const express = require('express');
-const http = require('http');
-const socketIo = require('socket.io');
+import React from 'react';
+import ReactDOM from 'react-dom';
+import { AppContainer } from 'react-hot-loader';
 
-const app = express();
-const server = http.createServer(app);
-const io = socketIo(server);
-const UsersService = require('./UsersService');
-const userService = new UsersService();
+import App from './App';
 
-app.use(express.static(__dirname + '/public'));
+const render = (Component) => {
+	ReactDOM.render(
+		<AppContainer>
+			<Component/>
+		</AppContainer>,
+		document.getElementById('root')
+	);
+};
 
-app.get('/', function(req, res) {
-	res.sendFile(__dirname + '/index.html');
-});
+render(App);
 
-io.on('connection', function(socket) {
-	socket.on('join', function(name) {
-		userService.addUser({
-			id: socket.id,
-			name
-		});
-		io.emit('update', {
-			users: userService.getAllUsers()
-		});
+if (module.hot) {
+	module.hot.accept('./App', () => {
+		const NewApp = require('./App').default;
+		render(NewApp)
 	});
-	socket.on('disconnect', () => {
-		userService.removeUser(socket.id);
-		socket.broadcast.emit('update', {
-			users: userService.getAllUsers()
-		});
-	});
-	socket.on('message', function(message) {
-		const {name} = userService.getUserById(socket.id);
-		socket.broadcast.emit('message', {
-			text: message.text,
-			from: name
-		});
-	});
-});
-
-server.listen(3000, function() {
-	console.log('listening on *:3000');
-});
+}
